@@ -14,6 +14,11 @@ const AGENT: &str = concat!(
     env!("CARGO_PKG_VERSION"),
     " (https://github.com/sonorahq/sonora)"
 );
+/// Total attempts against a transient failure: the first try plus one retry.
+const ATTEMPTS: u8 = 2;
+/// How long to wait before the retry. LrcLib is a small free service; a short pause is enough
+/// to ride out the kind of blip that produced the 503 this exists for.
+const RETRY_DELAY: std::time::Duration = std::time::Duration::from_millis(750);
 
 pub struct LrcLib {
     http: reqwest::Client,
@@ -80,21 +85,33 @@ impl LyricsProvider for LrcLib {
     }
 
     async fn search(&self, query: &LyricsQuery) -> Result<Vec<LyricsHit>> {
-        let response = self
-            .http
-            .get(ENDPOINT)
-            .query(&[
-                ("track_name", query.title.as_str()),
-                ("artist_name", query.artist.as_str()),
-            ])
-            .header("User-Agent", AGENT)
-            .send()
-            .await
-            .context("cannot reach lrclib")?;
-        let status = response.status();
-        if !status.is_success() {
-            anyhow::bail!("lrclib answered with status {status}");
-        }
+        let params = [
+            ("track_name", query.title.as_str()),
+            ("artist_name", query.artist.as_str()),
+        ];
+
+        let mut attempt = 0u8;
+        let response = loop {
+            attempt += 1;
+            let response = self
+                .http
+                .get(ENDPOINT)
+                .query(&params)
+                .header("User-Agent", AGENT)
+                .send()
+                .await
+                .context("cannot reach lrclib")?;
+            let status = response.status();
+            if status.is_success() {
+                break response;
+            }
+            if attempt >= ATTEMPTS || !retryable(status) {
+                anyhow::bail!("lrclib answered with status {status}");
+            }
+            log::warn!("lyrics: lrclib answered with status {status}, retrying");
+            tokio::time::sleep(RETRY_DELAY).await;
+        };
+
         let found: Vec<Found> = response
             .json()
             .await
@@ -181,6 +198,12 @@ fn worded(words: &[FileWord]) -> Option<Vec<LyricsWord>> {
         })
         .collect();
     (!words.is_empty()).then_some(words)
+}
+
+/// Whether a failed response is worth trying again. A 5xx is the server's own trouble, which a
+/// short wait can outlast; a 4xx (a bad query, nothing found) will not change on a retry.
+fn retryable(status: reqwest::StatusCode) -> bool {
+    status.is_server_error()
 }
 
 #[cfg(test)]
@@ -272,5 +295,13 @@ mod tests {
         let lyrics = hit(found).unwrap().lyrics;
         assert!(lyrics.synced());
         assert!(!lyrics.worded());
+    }
+
+    #[test]
+    fn a_server_error_is_retryable_but_a_client_error_is_not() {
+        assert!(retryable(reqwest::StatusCode::SERVICE_UNAVAILABLE));
+        assert!(retryable(reqwest::StatusCode::INTERNAL_SERVER_ERROR));
+        assert!(!retryable(reqwest::StatusCode::NOT_FOUND));
+        assert!(!retryable(reqwest::StatusCode::OK));
     }
 }
