@@ -4498,7 +4498,6 @@ dependencies = [
  "protobuf",
  "reqwest 0.13.4",
  "rodio 0.22.2",
- "roxmltree 0.21.1",
  "rtrb",
  "rusqlite",
  "rustfft",
