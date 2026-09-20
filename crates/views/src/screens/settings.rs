@@ -2552,7 +2552,6 @@ impl SettingsView {
         let providers = [
             ("Spotify", "settings-lyrics-provider-spotify"),
             ("YouTube Music", "settings-lyrics-provider-youtube"),
-            ("Apple Music", "settings-lyrics-provider-apple-music"),
             ("Musixmatch", "settings-lyrics-provider-musixmatch"),
             ("LrcLib", "settings-lyrics-provider-lrclib"),
             ("Kugou", "settings-lyrics-provider-kugou"),

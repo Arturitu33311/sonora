@@ -1,6 +1,5 @@
 pub mod apple;
 mod audio;
-pub mod binimum;
 pub mod credentials;
 pub mod deezer;
 pub mod drm;

@@ -351,15 +351,9 @@ impl Default for Values {
             discord_sonora_button: true,
             discord_provider_button: true,
             lyrics_for_local_files: true,
-            lyrics_providers: [
-                "Spotify",
-                "YouTube Music",
-                "Apple Music",
-                "Musixmatch",
-                "LrcLib",
-            ]
-            .map(str::to_owned)
-            .to_vec(),
+            lyrics_providers: ["Spotify", "YouTube Music", "Musixmatch", "LrcLib"]
+                .map(str::to_owned)
+                .to_vec(),
             karaoke_lyrics: true,
             blur_lyrics: true,
             romanized_lyrics: true,
@@ -1696,6 +1690,12 @@ mod tests {
         assert!(!state.sidebar_pin_reversed);
         assert!(PinSort::from_id(&state.sidebar_pin_sort).is_none());
         assert!(PinSort::from_id("nonsense").is_none());
+    }
+
+    #[test]
+    fn the_default_lyrics_providers_no_longer_include_a_dead_source() {
+        let providers = Values::default().lyrics_providers;
+        assert!(!providers.iter().any(|name| name == "Apple Music"));
     }
 
     #[test]

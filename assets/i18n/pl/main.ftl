@@ -654,7 +654,6 @@ settings-lyrics-providers-selected = { $count ->
     }
 settings-lyrics-provider-spotify = Spotify
 settings-lyrics-provider-youtube = YouTube Music
-settings-lyrics-provider-apple-music = Apple Music
 settings-lyrics-provider-musixmatch = Musixmatch
 settings-lyrics-provider-lrclib = LRCLIB
 settings-lyrics-provider-kugou = Kugou
