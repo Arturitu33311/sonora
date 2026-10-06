@@ -1,0 +1,20 @@
+name: contador-diario
+on:
+  schedule:
+    - cron: "0 12 * * *" # diario 12:00 UTC
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  contar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          n=$(( $(cat CONTADOR 2>/dev/null || echo 0) + 1 ))
+          echo $n > CONTADOR
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add CONTADOR
+          git commit -m "contador: $n"
+          git push
